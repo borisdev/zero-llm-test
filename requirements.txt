@@ -1,0 +1,8 @@
+streamlit==1.25.0
+openai
+langchain
+ipdb
+altair
+pytest
+py_console
+streamlit-aggrid

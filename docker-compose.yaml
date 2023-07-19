@@ -1,0 +1,18 @@
+version: '3'
+services:
+  zero:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    container_name: zero
+    env_file:
+      - .env
+    tty: true
+    environment:
+      - PYTHONBREAKPOINT=ipdb.set_trace
+      - LOCAL=true
+    ports:
+      - 8501:8501
+    command: ["streamlit", "run", "streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+    volumes:
+      - .:/app

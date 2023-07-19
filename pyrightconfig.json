@@ -1,0 +1,10 @@
+{
+  "executionEnvironments": [
+        {"root": "/Users/borisdev/workspace/zero-llm-test"}
+  ],
+  "include": [".devcontainer/python-packages"],
+  
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false
+
+}
