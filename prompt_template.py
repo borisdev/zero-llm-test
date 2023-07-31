@@ -118,6 +118,14 @@ class ReTrainer(BaseModel):
         """no implemented yet"""
         pass
 
+    def select_example_by_similarity(self, unformatted_input):
+        """
+        https://python.langchain.com/docs/modules/model_io/prompts/example_selectors/similarity/
+
+        no implemented yet
+        """
+        pass
+
     def make_prompt_template(self):
         """dynamically compose the prompt template based on the updated io examples"""
         # fmt: off
