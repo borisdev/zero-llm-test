@@ -13,8 +13,6 @@ import os
 import streamlit as st
 import pandas as pd
 from PIL import Image
-from st_aggrid import AgGrid
-from st_aggrid.grid_options_builder import GridOptionsBuilder
 from langchain.llms import OpenAI
 import llm_interface
 
@@ -64,52 +62,31 @@ if uploaded_file:
     st.info("Table before AI formatting")
     input_table = pd.read_csv(uploaded_file)
     st.dataframe(input_table)
-    st.write("")
-    st.write("")
-    st.info("Please wait for the AI transformation to complete")
-    output_table = llm_interface.format_table(llm_connection, input_table)
-    output_table.to_csv("data.csv", index=False)  # on disk for editable table
+    st.info("Please wait 30 secs for the AI transformation to complete")
+    output_table = llm_interface.format_table(llm_connection, input_table)  # type: ignore
     st.success("AI transformation complete, go check it for errors!")
-    st.subheader(" ② AI Output of a Formatted Table")
-    st.info(
-        """💡 You must select a row using the checkbox then fix the value and
-        rationale. This fix will be used to re-train the AI (make a new prompt)
-        and re-run the formating. Look at the above Table from step ① to see the
-        original values."""
-    )
-    st.caption("")
+    st.info("Table after AI formatting")
+    st.dataframe(output_table)
+    st.subheader(" ② Fix AI error")
 
-    def show_grid():
-        df = data_upload()
-        gd = GridOptionsBuilder.from_dataframe(df)
-        gd.configure_pagination(enabled=True)
-        gd.configure_default_column(editable=True, groupable=True)
-        # gd.configure_selection(selection_mode="multiple", use_checkbox=True)
-        gridoptions = gd.build()
-
-        gb = GridOptionsBuilder.from_dataframe(df)
-        gb.configure_default_column(editable=True)
-        grid_table = AgGrid(
-            df,
-            # height=400,
-            # gridOptions=gb.build(),
-            gridOptions=gridoptions,
-            # fit_columns_on_grid_load=True,
-            theme="material",
-            allow_unsafe_jscode=True,
+    with st.form("input_form"):
+        st.info(
+            """💡 Your fix will re-train the AI system. Submit the fix as a sentence
+            with a new value and new transform rationale."""
         )
-        return grid_table
+        # fmt: off
+        example_fix = (
+            """
+            for row 0 set the 'Date.value' field to '05-01-2023' and set the 'Data.value_rationale' to 'format as MM-DD-YYYY' AND assume USA'
+            """
+        )
+        # fmt: on
+        user_fix = st.text_input("Fix", example_fix)
+        clickSubmit = st.form_submit_button("Submit")
 
-    def update(grid_table):
-        """write the new edits to the disk and then re-load this app to show new
-        grid"""
-        grid_table_df = pd.DataFrame(grid_table["data"])
-        grid_table_df.to_csv("data.csv", index=False)
-
-    grid_table = show_grid()
-    # button push event will write the new table edits to the disk and then re-load this app
-    st.sidebar.button(
-        "Retrain AI with corrected examples and rationales",
-        on_click=update,
-        args=[grid_table],
-    )
+    if clickSubmit:
+        output_table = llm_interface.format_table(llm_connection, input_table)  # type: ignore
+        st.info("Table after user feedback to AI")
+        st.dataframe(output_table)
+    else:
+        st.markdown("Please submit to save")

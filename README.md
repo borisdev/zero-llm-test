@@ -43,7 +43,7 @@ The examples will continually be improved upon by the user feedback corrections
 and rationales so that the LLM's predictions will continually improve. 
 
 Tech note: To bootstrap the "retraining" process the developer has created two initial sets of example
-transforms by using the first five rows of the `table_A.csv` and `table_B.csv` files.
+transforms by using two rows from `table_A.csv` and `table_B.csv` files. 
 
 
 ## Design rationale
@@ -142,7 +142,8 @@ compound of three columns, first, last, and middle.
 - User: hand template table of examples to developer
 - Developer: template table examples -> Developer analysis -> initial `rationales`
 - User: upload table 
-- App: raw table + `rationales` -> LLM -> transformed table 
-- User: validate transformed table or improve rationales
+- App: raw table + `examples` and `rationales` -> LLM -> transformed table 
+- User: fixes AI prediction will update the table of `examples` and
+  `rationales`, and update the prompt
 - App: test new rationales gives same output on historic data [future]
 
