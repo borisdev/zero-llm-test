@@ -13,5 +13,4 @@ Run tests
 
 ```
 docker exec -it zero  python -m pytest -s test_basics.py
-docker exec -it zero  python -m pytest -s test_basics.py::TestTDD::test_streamlit_chain
 ```
