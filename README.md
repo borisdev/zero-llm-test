@@ -123,7 +123,7 @@ compound of three columns, first, last, and middle.
 | user views candidate col matches & rationale| LLM guesses, user corrects          |
 | user confirm of col match triggers transform| LLM guesses, user corrects          |
 | user confirms/edits transform logic         | user updates rationales, not code   |
-| EXTRA: retrain w/ user correction feedback  | UI bugs, ran out of time.           |
+| EXTRA: retrain w/ user correction feedback  | Backend retrain partially done, UI bugs, ran out of time.           |
 | EXTRA: retrain w/ synthetic tables          | ran out of time                     |
 
 
