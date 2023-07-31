@@ -114,6 +114,10 @@ class ReTrainer(BaseModel):
         result = escaped_json(result)
         return result
 
+    def update_examples(self, user_fix):
+        """no implemented yet"""
+        pass
+
     def make_prompt_template(self):
         """dynamically compose the prompt template based on the updated io examples"""
         # fmt: off
