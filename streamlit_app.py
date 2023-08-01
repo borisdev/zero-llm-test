@@ -26,6 +26,30 @@ else:
     OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 
 
+def dataframe_with_selections(df):
+    df_with_selections = df.copy()
+    df_with_selections.insert(0, "Select", False)
+
+    # Get dataframe row-selections from user with st.data_editor
+    edited_df = st.data_editor(
+        df_with_selections,
+        hide_index=True,
+        column_config={"Select": st.column_config.CheckboxColumn(required=True)},
+        disabled=df.columns,
+    )
+
+    # Filter the dataframe using the temporary column, then drop the column
+    selected_rows = edited_df[edited_df.Select]
+    return selected_rows.drop("Select", axis=1)
+
+
+@st.cache_data
+def llm_format_table(input_table: pd.DataFrame) -> pd.DataFrame:
+    llm_connection = OpenAI(temperature=0, openai_api_key=OPENAI_API_KEY, max_tokens=1000)  # type: ignore
+    output_table = llm_interface.format_table(llm_connection, input_table)  # type: ignore
+    return output_table
+
+
 st.title("Format tables using corrections and rationales")
 
 st.markdown(
@@ -51,7 +75,6 @@ def data_upload():
     return df
 
 
-llm_connection = OpenAI(temperature=0, openai_api_key=OPENAI_API_KEY, max_tokens=1000)  # type: ignore
 llm_connection_random = OpenAI(temperature=0.5, openai_api_key=OPENAI_API_KEY, max_tokens=1000)  # type: ignore
 
 
@@ -63,18 +86,24 @@ if uploaded_file:
     input_table = pd.read_csv(uploaded_file)
     st.dataframe(input_table)
     st.info("Please wait 30 secs for the AI transformation to complete")
-    output_table = llm_interface.format_table(llm_connection, input_table)  # type: ignore
+    output_table = llm_format_table(input_table)  # type: ignore
     st.success("AI transformation complete, go check it for errors!")
     st.info("Table after AI formatting")
     st.dataframe(output_table)
+    # TODO: let user select a row to fix, show row in vertical form
+    # selection = dataframe_with_selections(output_table)
+    # st.write("Your selection:")
+    # st.write(selection)
     st.subheader(" ② Fix AI error")
 
     with st.form("input_form"):
         st.info(
-            """💡 Your fix will re-train the AI system. Submit the fix as a sentence
-            with a new value and new transform rationale."""
+            """💡 Your fix will re-train the AI system. Submit the fix as a sentence."""
         )
         # fmt: off
+        st.warning(
+            """This is a UI prototype - how the user's fix is submitted
+                must be improved upon by experimentation""")
         example_fix = (
             """
             for row 0 set the 'Date.value' field to '05-01-2023' and set the 'Data.value_rationale' to 'format as MM-DD-YYYY' AND assume USA'
@@ -85,8 +114,9 @@ if uploaded_file:
         clickSubmit = st.form_submit_button("Submit")
 
     if clickSubmit:
-        output_table = llm_interface.format_table(llm_connection, input_table)  # type: ignore
-        st.info("Table after user feedback to AI")
+        output_table = llm_format_table(input_table)  # type: ignore
+        st.info("Table after AI formatting AND and after retrain with your fix")
+        st.warning("This is a UI prototype, the retrain is not yet implemented")
         st.dataframe(output_table)
     else:
         st.markdown("Please submit to save")
