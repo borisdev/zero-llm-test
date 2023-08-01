@@ -17,7 +17,7 @@ from langchain.llms import OpenAI
 import llm_interface
 from st_aggrid import AgGrid, GridUpdateMode
 from st_aggrid.grid_options_builder import GridOptionsBuilder
-
+from prompt_template import retrainer
 
 image = Image.open("wide-mode.png")
 
@@ -47,8 +47,8 @@ def dataframe_with_selections(df):
 
 @st.cache_data
 def llm_format_table(input_table: pd.DataFrame, new_user_example=None) -> pd.DataFrame:
-    if new_user_example:
-        pass
+    if new_user_example is not None:
+        retrainer.add_streamlit_user_fix(input_table, new_user_example)  # type: ignore
     llm_connection = OpenAI(temperature=0, openai_api_key=OPENAI_API_KEY, max_tokens=1000)  # type: ignore
     output_table = llm_interface.format_table(llm_connection, input_table)  # type: ignore
     return output_table
@@ -120,7 +120,8 @@ if uploaded_file:
     st.write("")
     df_sel_row = pd.DataFrame(sel_row)
     if not df_sel_row.empty:
-        fixed_record = df_sel_row.to_dict("records")
+        fixed_records = df_sel_row.to_dict("records")
+        fixed_record = fixed_records[0]
         # show user her fix
         st.write(fixed_record)
 
@@ -131,14 +132,8 @@ if uploaded_file:
         clickSubmitFix = st.button("Submit fix and re-run AI formatting")
 
         if clickSubmitFix:
-            # get the index of the fixed record
-            fixed_record_idx = fixed_record[0]["_selectedRowNodeInfo"]["nodeRowIndex"]
-            new_user_example = {
-                "input": input_table.to_dict("records")[fixed_record_idx],  # type: ignore
-                "output": fixed_record,
-            }
             output_table = llm_format_table(
-                input_table, new_user_example=new_user_example  # type: ignore
+                input_table, new_user_example=fixed_record  # type: ignore
             )
             st.info("Formatted Table after retraining with your fix")
             st.dataframe(output_table)

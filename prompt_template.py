@@ -8,7 +8,7 @@ formatting intent.
 """
 import json
 
-# import pandas as pd
+import pandas as pd
 from langchain.prompts.prompt import PromptTemplate
 from langchain import FewShotPromptTemplate
 from pydantic import (
@@ -114,9 +114,26 @@ class ReTrainer(BaseModel):
         result = escaped_json(result)
         return result
 
-    def update_examples(self, user_fix):
-        """no implemented yet"""
-        pass
+    def add_example(self, new_user_example: IOExample):
+        """
+        naive replace logic to prove we can update the io examples
+
+        TODO: implement better logic to update the io examples
+        """
+        self.io_examples.pop()
+        self.io_examples.append(new_user_example)
+
+    def add_streamlit_user_fix(self, input_table: pd.DataFrame, fixed_record: dict):
+        """
+        special data cleaning when we get the user's fix from streamlit
+        """
+        fixed_record_idx = fixed_record["_selectedRowNodeInfo"]["nodeRowIndex"]
+        del fixed_record["_selectedRowNodeInfo"]
+        example = IOExample(
+            record=input_table.to_dict("records")[fixed_record_idx],  # type: ignore
+            formatted_record=fixed_record,
+        )
+        self.add_example(example)
 
     def select_example_by_similarity(self, unformatted_input):
         """
