@@ -15,6 +15,14 @@ import pandas as pd
 from PIL import Image
 from langchain.llms import OpenAI
 import llm_interface
+from st_aggrid import AgGrid, GridUpdateMode
+from st_aggrid.grid_options_builder import GridOptionsBuilder
+
+
+@st.cache_data
+def convert_df(df):
+    # IMPORTANT: Cache the conversion to prevent computation on every rerun
+    return df.to_csv().encode("utf-8")
 
 
 image = Image.open("wide-mode.png")
@@ -87,36 +95,41 @@ if uploaded_file:
     st.dataframe(input_table)
     st.info("Please wait 30 secs for the AI transformation to complete")
     output_table = llm_format_table(input_table)  # type: ignore
-    st.success("AI transformation complete, go check it for errors!")
-    st.info("Table after AI formatting")
-    st.dataframe(output_table)
-    # TODO: let user select a row to fix, show row in vertical form
-    # selection = dataframe_with_selections(output_table)
-    # st.write("Your selection:")
-    # st.write(selection)
-    st.subheader(" ② Fix AI error")
-
-    with st.form("input_form"):
-        st.info(
-            """💡 Your fix will re-train the AI system. Submit the fix as a sentence."""
-        )
-        # fmt: off
-        st.warning(
-            """This is a UI prototype - how the user's fix is submitted
-                must be improved upon by experimentation""")
-        example_fix = (
-            """
-            for row 0 set the 'Date.value' field to '05-01-2023' and set the 'Data.value_rationale' to 'format as MM-DD-YYYY' AND assume USA'
-            """
-        )
-        # fmt: on
-        user_fix = st.text_input("Fix", example_fix)
-        clickSubmit = st.form_submit_button("Submit")
-
-    if clickSubmit:
-        output_table = llm_format_table(input_table)  # type: ignore
-        st.info("Table after AI formatting AND and after retrain with your fix")
-        st.warning("This is a UI prototype, the retrain is not yet implemented")
-        st.dataframe(output_table)
-    else:
-        st.markdown("Please submit to save")
+    st.success("AI transformation complete")
+    st.subheader(" ② Find an AI error to fix as as new training example")
+    st.write("")
+    st.info(
+        """After you edit a row, you must (re) click to the checkbox col to
+            save it. Look at the orginal source table above to help you."""
+    )
+    st.info(
+        """In the future we can combine the input and output tables so its
+               easier for the user to find errors to fix."""
+    )
+    df = output_table
+    gd = GridOptionsBuilder.from_dataframe(df)
+    gd.configure_pagination(enabled=True)
+    gd.configure_default_column(editable=True, groupable=True)
+    gd.configure_selection(selection_mode="single", use_checkbox=True)
+    gridoptions = gd.build()
+    grid_table = AgGrid(
+        df,
+        gridOptions=gridoptions,
+        update_mode=GridUpdateMode.SELECTION_CHANGED,
+        theme="material",
+    )
+    sel_row = grid_table["selected_rows"]
+    st.subheader("③ Check your row fix and submit it")
+    st.write("")
+    df_sel_row = pd.DataFrame(sel_row)
+    if not df_sel_row.empty:
+        st.write(df_sel_row.to_dict("records"))
+        clickSubmitFix = st.button("Submit fix and re-run AI formatting")
+        if clickSubmitFix:
+            output_table = llm_format_table(input_table)  # type: ignore
+            st.info("Formatted Table after retraining with your fix")
+            st.warning(
+                """This is a UI prototype, the retrain is not yet
+                       implemented as a placeholder you see the same table."""
+            )
+            st.dataframe(output_table)
