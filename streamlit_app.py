@@ -19,12 +19,6 @@ from st_aggrid import AgGrid, GridUpdateMode
 from st_aggrid.grid_options_builder import GridOptionsBuilder
 
 
-@st.cache_data
-def convert_df(df):
-    # IMPORTANT: Cache the conversion to prevent computation on every rerun
-    return df.to_csv().encode("utf-8")
-
-
 image = Image.open("wide-mode.png")
 
 if os.environ.get("LOCAL", False):
@@ -52,7 +46,9 @@ def dataframe_with_selections(df):
 
 
 @st.cache_data
-def llm_format_table(input_table: pd.DataFrame) -> pd.DataFrame:
+def llm_format_table(input_table: pd.DataFrame, new_user_example=None) -> pd.DataFrame:
+    if new_user_example:
+        pass
     llm_connection = OpenAI(temperature=0, openai_api_key=OPENAI_API_KEY, max_tokens=1000)  # type: ignore
     output_table = llm_interface.format_table(llm_connection, input_table)  # type: ignore
     return output_table
@@ -93,10 +89,9 @@ if uploaded_file:
     st.info("Table before AI formatting")
     input_table = pd.read_csv(uploaded_file)
     st.dataframe(input_table)
-    st.info("Please wait 30 secs for the AI transformation to complete")
     output_table = llm_format_table(input_table)  # type: ignore
     st.success("AI transformation complete")
-    st.subheader(" ② Find an AI error to fix as as new training example")
+    st.subheader(" ② Correct a row, then click the checkbox")
     st.write("")
     st.info(
         """After you edit a row, you must (re) click to the checkbox col to
@@ -119,17 +114,31 @@ if uploaded_file:
         theme="material",
     )
     sel_row = grid_table["selected_rows"]
-    st.subheader("③ Check your row fix and submit it")
+    st.subheader(
+        "③ Check your row fix, then submit the example for retrained formatting"
+    )
     st.write("")
     df_sel_row = pd.DataFrame(sel_row)
     if not df_sel_row.empty:
-        st.write(df_sel_row.to_dict("records"))
+        fixed_record = df_sel_row.to_dict("records")
+        # show user her fix
+        st.write(fixed_record)
+
+        # make a unittest fixture
+        # import json
+        # st.write(json.dumps(df_sel_row.to_dict("records"), indent=2))
+
         clickSubmitFix = st.button("Submit fix and re-run AI formatting")
+
         if clickSubmitFix:
-            output_table = llm_format_table(input_table)  # type: ignore
-            st.info("Formatted Table after retraining with your fix")
-            st.warning(
-                """This is a UI prototype, the retrain is not yet
-                       implemented as a placeholder you see the same table."""
+            # get the index of the fixed record
+            fixed_record_idx = fixed_record[0]["_selectedRowNodeInfo"]["nodeRowIndex"]
+            new_user_example = {
+                "input": input_table.to_dict("records")[fixed_record_idx],  # type: ignore
+                "output": fixed_record,
+            }
+            output_table = llm_format_table(
+                input_table, new_user_example=new_user_example  # type: ignore
             )
+            st.info("Formatted Table after retraining with your fix")
             st.dataframe(output_table)

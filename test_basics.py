@@ -29,7 +29,5 @@ class TestTDD(unittest.TestCase):
         input_table = pd.read_csv(csv_table)
         output_table = llm_interface.format_table(llm, input_table)  # type: ignore
         print(output_table)
-        # LLM will translate the user's natural langauge fix into a SQL query to reset the examples
-        # table
-        # Date.value
-        # Date.tranform_rationale
+
+        # assume on UI, user submitted a fix for row 9 in the streamlit grid table
